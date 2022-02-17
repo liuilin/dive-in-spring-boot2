@@ -1,4 +1,4 @@
-package com.liumulin.controller;
+package com.liumulin.web.servlet;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;

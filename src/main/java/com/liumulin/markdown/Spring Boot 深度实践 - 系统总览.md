@@ -55,6 +55,10 @@
 
 ### 1. 组件自动装配
 
+组件自动装配：Web MVC、Web Flux、JDBC
+
+> Spring Boot 将 Spring Framework 手动的方式转为了自动的方式，这可以帮助我们减少许多代码的编写，它是有一点条件方式的触发，也是帮助我们去理解相应的特性，更关注我们业务的开发，提高我们的开发效率
+
 激活：`@EnableAutoConfiguration`
 
 配置：`/META-INF/spring.factories`
@@ -74,14 +78,25 @@ Web MVC 依赖
 
 ### 2. 嵌入式 Web 容器
 
-- Web Servlet 容器
-- Web Reactive 容器
+- Web Servlet：Tomcat、Jetty 以及 Undertow
+
+- Web Reactive：Netty Web Server
+
+  Spring Boot 2.0 可以自由的去切换 Web 容器
 
 ### 3. 生产准备特性
 
-- 指标（Metrics）
-- 健康检查（Health Check）
+- 指标（Metrics）：/actuator/metrics
+
+  > metrics 信息可以是 CPU、内存、磁盘等利用率的信息
+
+- 健康检查（Health Check）：/actuator/
+
+  > 查看应用、数据库、磁盘等是否健康
+
 - 外部化配置（Externalized Configuration）
+
+  > 不用写代码的方式调整应用的行为，比如 Web 端口，可以通过 -Dserver.port=8090（或 properties、yml） 来做相应的调整，相应的应用服务器的端口就会发生相应的变化。而要是以前可能需要配置一个 XML 的方式或者写代码的方式来操作
 
 ## Web 应用
 
