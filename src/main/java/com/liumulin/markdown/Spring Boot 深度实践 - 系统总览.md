@@ -90,11 +90,11 @@ Web MVC 依赖
 
   > metrics 信息可以是 CPU、内存、磁盘等利用率的信息
 
-- 健康检查（Health Check）：/actuator/
+- 健康检查（Health Check）：/actuator/health
 
   > 查看应用、数据库、磁盘等是否健康
 
-- 外部化配置（Externalized Configuration）
+- 外部化配置（Externalized Configuration）：/actuator/configprops
 
   > 不用写代码的方式调整应用的行为，比如 Web 端口，可以通过 -Dserver.port=8090（或 properties、yml） 来做相应的调整，相应的应用服务器的端口就会发生相应的变化。而要是以前可能需要配置一个 XML 的方式或者写代码的方式来操作
 
@@ -121,7 +121,7 @@ Web MVC 依赖
   - URL 映射
     - `@WebServlet(urlPatterns = "/my/servlet")`
   - 注册
-    - `@ServletComponentScan("com.liumulin.controller")`
+    - `@ServletComponentScan("com.liumulin.web.servlet")`
 - Filter
 - Listener
 
@@ -162,6 +162,23 @@ RegistrationBean
   - `javax.servlet.ReadListener  `
 - `javax.servlet.ServletOutputStream#setWriteListener  `
   - `javax.servlet.WriteListener  `
+
+```java
+@WebServlet(urlPatterns = "/my/servlet", asyncSupported = true)
+...
+AsyncContext asyncContext = request.startAsync();
+asyncContext.start(() -> {
+    try {
+        response.getWriter().write("Hello World");
+        // 触发完成
+        asyncContext.complete();
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+});
+```
+
+
 
 ### Spring Web MVC 应用
 
@@ -235,7 +252,7 @@ Flux
 
 **Web Flux 核心**
 
-Web MVC 注解兼容
+兼容 Web MVC 注解
 
 - `@Controller`
 - `@RequestMapping`
@@ -247,12 +264,18 @@ Web MVC 注解兼容
 
 - `RouterFunction`
 
+> 函数式申明有什么好处：1. 函数式编程可以更丰富弹性，比如说你可以通过很多条件来做，尽管这个可以通过 Condition 来做（也就是条件方面来做一个判断），但是呢函数的灵活性就远远大于其它的方式；2. 可以绑定事件方法，就是说我可以在一个 Spring 表达式里面部署多个 Endpoint，以及映射方法的处理机制，我不需要导出相应的去绑定	
+
 异步非阻塞
 
 - Servlet 3.1+
 - Netty Reator
 
-使用
+> WebFlux 有一定的优劣势，它能提供系统的吞吐量，但提升系统吞吐量并不代表它快
+
+使用场景
+
+> 性能测试：https://blog.ippon.tech/spring-5-webflux-performance-tests/
 
 ### Web Server 应用
 
@@ -267,7 +290,7 @@ Web MVC 注解兼容
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
       <exclusions>
-          <!-- Exclude the Tomcat dependency -->
+          <!-- Tomcat 运行优先级高于 jetty，所以需要排除 -->
           <exclusion>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-starter-tomcat</artifactId>
@@ -290,7 +313,7 @@ Web MVC 注解兼容
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
       <exclusions>
-          &lt;!&ndash; Exclude the Tomcat dependency &ndash;&gt;
+          <!-- Tomcat 运行优先级高于 jetty，所以需要排除 -->
           <exclusion>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-starter-tomcat</artifactId>
@@ -302,6 +325,7 @@ Web MVC 注解兼容
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-jetty</artifactId>
   </dependency>-->
+  <!--WebFlux 容器优先级低于了传统 Web 容器，所以要把其它容器全部注释掉-->
   <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webflux</artifactId>
@@ -316,13 +340,57 @@ Web MVC 注解兼容
 
 - `ReactiveWebServerFactoryCustomizer`
 
+# 走向自动装配
 
+## Spring 模式注解装配
 
+模式注解（Stereotype Annotations）
 
+> A stereotype annotation is an annotation that is used to declare the role that a component plays within the application. For example, the @Repository annotation in the Spring Framework is a marker for any class that fulfills the role or *stereotype* of a repository (also known as Data Access Object or DAO).
+>
+> @Component is a generic stereotype for any Spring-managed component. Any component annotated with @Component is a candidate for component scanning. Similarly, any component annotated with an annotation that is itself meta-annotated with @Component is also a candidate for component scanning. For example, @Service is meta-annotated with @Component .  
 
+模式注解是一种用于声明在应用中扮演“组件”角色的注解。如 Spring Framework 中的 @Repository 标注在任何类上 ，用于扮演仓储角色的模式注解。
 
+@Component 作为一种由 Spring 容器托管的通用模式组件，任何被 @Component 标准的组件均为组件扫描的候选对象。类似地，凡是被 @Component 元标注了（**meta-annotated**）的注解，如 @Service ，当任何组件标注它时，也会被视作组件扫描的候选对象  
 
+**模式注解举例**
 
+| Spring Framework 注解 | 场景说明           | 起始版本 |
+| --------------------- | ------------------ | -------- |
+| @Repository           | 数据仓储模式注解   | 2.0      |
+| @Component            | 通用组件模式注解   | 2.5      |
+| @Service              | 服务模式注解       | 2.5      |
+| @Controller           | Web 控制器模式注解 | 2.5      |
+| @Configuration        | 配置类模式注解     | 3.0      |
+
+**装配方式**
+
+`<context:component-scan>` 方式
+
+```java
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/springcontext.xsd">
+    <!-- 激活注解驱动特性 -->
+    <context:annotation-config/>
+    <!-- 找寻被 @Component 或者其派生 Annotation 标记的类（Class），将它们注册为 Spring Bean -->
+    <context:component-scan base-package="com.liumulin.web.servlet"/>
+</beans>
+```
+
+`@ComponentScan` 方式
+
+```java
+@ComponentScan(basePackages = "com.imooc.dive.in.spring.boot")
+public class SpringConfiguration {
+	...
+}
+```
 
 
 
