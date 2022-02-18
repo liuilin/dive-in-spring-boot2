@@ -1,4 +1,4 @@
-# Spring Boot 深度实践 - 系统总览
+# 一、Spring Boot 深度实践 - 系统总览
 
 > 技术选型。为什么选择 Spring Boot？
 >
@@ -340,7 +340,7 @@ Flux
 
 - `ReactiveWebServerFactoryCustomizer`
 
-# 走向自动装配
+# 二、走向自动装配
 
 ## Spring 模式注解装配
 
@@ -391,6 +391,198 @@ public class SpringConfiguration {
 	...
 }
 ```
+
+**自定义注解模式**
+
+`@Component` "派生性"
+
+```java
+/**
+ * 一级 {@link Repository @Repository}
+ *
+ * @author liuqiang
+ * @since 2022-02-18
+ */
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Repository
+public @interface FirstLevelRepository {
+    String value() default "";
+}
+```
+
+- `@Component`
+  - `@Repository`
+    - `@FirstLevelRepository`
+
+`@Component` ”层次性“
+
+```java
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@FirstLevelRepository
+public @interface SecondLevelRepository {
+    String value() default "";
+}
+
+```
+
+- `@Component`
+  - `@Repository`
+    - `@FirstLevelRepository`
+      - `@SecondLevelRepository`
+
+> ```java
+> //@FirstLevelRepository(value = "firstLevelRepository")
+> @SecondLevelRepository(value = "firstLevelRepository")
+> public class MyFirstLevelRepository {
+> }
+> ```
+>
+> ```java
+> @ComponentScan(basePackages = "com.liumulin.repository")
+> public class RepositoryBootstrap {
+>     public static void main(String[] args) {
+>         ConfigurableApplicationContext context = new SpringApplicationBuilder(RepositoryBootstrap.class)
+>                 .web(WebApplicationType.NONE)
+>                 .run(args);
+>         // 验证 Bean 是否存在
+>         MyFirstLevelRepository firstLevelRepository = context.getBean("firstLevelRepository", MyFirstLevelRepository.class);
+>         System.out.println("firstLevelRepository = " + firstLevelRepository);
+>         // 关闭容器
+>         context.close();
+>     }
+> }
+> ```
+>
+> 
+
+
+
+ImportSelector（3.1） 比 `Configuration` （3.0）方式更加灵活，因为里面可以添加一些分支、条件判断啥的
+
+## Spring @Enable 模块装配
+
+Spring Framework 3.1 开始支持 ”@Enable 模块驱动 “。所谓 “模块” 是指具备相同领域的功能组件集合， 组合所形成一个独立
+的单元。比如 Web MVC 模块、AspectJ 代理模块、Caching（缓存）模块、JMX（Java 管 理扩展）模块、Async（异步处
+理）模块等。
+
+### `@Enable` 注解模块举例
+
+| 框架实现            | @Enable 注解模块               | 激活模块            | 激活模块 |
+| ------------------- | ------------------------------ | ------------------- | -------- |
+| Spring    Framework | @EnableWebMvc                  | Web MVC 模块        |          |
+|                     | @EnableTransactionManagement   | 事务管理模块        |          |
+|                     | @EnableCaching                 | Caching 模块        |          |
+|                     | @EnableMBeanExport             | JMX 模块            |          |
+|                     | @EnableAsync                   | 异步处理模块        |          |
+|                     | EnableWebFlux                  | Web Flux 模块       |          |
+|                     | @EnableAspectJAutoProxy        | AspectJ 代理模块    |          |
+| Spring Boot         | @EnableAutoConfiguration       | 自动装配模块        |          |
+|                     | @EnableManagementContext       | Actuator 管理模块   |          |
+|                     | @EnableConfigurationProperties | 配置属性绑定模块    |          |
+|                     | @EnableOAuth2Sso               | OAuth2 单点登录模块 |          |
+| Spring Cloud        | @EnableEurekaServer            | Eureka服务器模块    |          |
+|                     | @EnableConfigServer            | 配置服务器模块      |          |
+|                     | @EnableFeignClients            | Feign 客户端模块    |          |
+|                     | @EnableZuulProxy               | 服务网关 Zuul 模块  |          |
+|                     | @EnableCircuitBreaker          | 服务熔断模块        |          |
+
+### 实现方式
+
+注解驱动方式
+
+```java
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE})
+@Documented
+@Import({DelegatingWebMvcConfiguration.class})
+public @interface EnableWebMvc {
+}
+```
+
+```java
+@Configuration(
+    proxyBeanMethods = false
+)
+public class DelegatingWebMvcConfiguration extends WebMvcConfigurationSupport {
+    ...
+}
+```
+
+接口编程方式
+
+```java
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Import({CachingConfigurationSelector.class})
+public @interface EnableCaching {
+    boolean proxyTargetClass() default false;
+
+    AdviceMode mode() default AdviceMode.PROXY;
+
+    int order() default 2147483647;
+}
+```
+
+```java
+public class CachingConfigurationSelector extends AdviceModeImportSelector<EnableCaching> {
+    public String[] selectImports(AdviceMode adviceMode) {
+        switch(adviceMode) {
+        case PROXY:
+            return this.getProxyImports();
+        case ASPECTJ:
+            return this.getAspectJImports();
+        default:
+            return null;
+        }
+    }
+    ...
+}
+```
+
+### 自定义 @Enable 模块
+
+基于自定义注解驱动实现 - `@EnableHelloWorld`
+
+基于接口驱动实现 - `@EnableServer`
+
+`HelloWorldImportSelector `-> `HelloWorldConfiguration `-> `HelloWorld`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
