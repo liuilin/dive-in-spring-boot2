@@ -478,7 +478,7 @@ Spring Framework 3.1 开始支持 ”@Enable 模块驱动 “。所谓 “模块
 |                     | @EnableCaching                 | Caching 模块        |          |
 |                     | @EnableMBeanExport             | JMX 模块            |          |
 |                     | @EnableAsync                   | 异步处理模块        |          |
-|                     | EnableWebFlux                  | Web Flux 模块       |          |
+|                     | @EnableWebFlux                 | Web Flux 模块       |          |
 |                     | @EnableAspectJAutoProxy        | AspectJ 代理模块    |          |
 | Spring Boot         | @EnableAutoConfiguration       | 自动装配模块        |          |
 |                     | @EnableManagementContext       | Actuator 管理模块   |          |
@@ -551,6 +551,108 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 基于接口驱动实现 - `@EnableServer`
 
 `HelloWorldImportSelector `-> `HelloWorldConfiguration `-> `HelloWorld`
+
+## Spring 条件装配
+
+从 Spring Framework 3.1 开始，允许在 Bean 装配时增加前置条件判断
+
+| Spring 注解  | 场景说明       | 起始版本 |
+| ------------ | -------------- | -------- |
+| @Profile     | 配置化条件装配 | 3.1      |
+| @Conditional | 编程条件装配   | 4.0      |
+
+### 实现方式
+
+- 配置的方式 @Profile
+- 编程的方式 @Conditional
+
+### 自定义条件装配
+
+**基于配置方式实现 @Profile**
+
+计算服务，多整数求和 sum
+
+```java
+@SpringBootApplication(scanBasePackages = "com.liumulin.service")
+public class CalculateServiceBootstrap {
+    public static void main(String[] args) {
+        ConfigurableApplicationContext ctx = new SpringApplicationBuilder(CalculateServiceBootstrap.class)
+                .web(WebApplicationType.NONE)
+                .profiles("Java8")
+                .run(args);
+        CalculateService calculateService = ctx.getBean(CalculateService.class);
+        Integer sum = calculateService.sum(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        System.out.println("sum = " + sum);
+        ctx.close();
+    }
+}
+```
+
+```java
+@Profile("Java8")
+@Service
+public class Java8CalculateService implements CalculateService {
+    @Override
+    public Integer sum(Integer... values) {
+        System.out.println("Java 8 Lambda 实现");
+        return Stream.of(values).reduce(0, Integer::sum);
+    }
+}
+```
+
+**基于编程方式实现 @ConditionalOnSystemProperty**
+
+```java
+public class ConditionalOnSystemPropertyBootstrap {
+    public static void main(String[] args) {
+        ConfigurableApplicationContext context = new SpringApplicationBuilder(ConditionalOnSystemPropertyBootstrap.class)
+                .web(WebApplicationType.NONE)
+                .run(args);
+
+        String helloWorld = context.getBean("helloWorld", String.class);
+        System.out.println("helloWorld = " + helloWorld);
+        context.close();
+    }
+
+    @Bean
+    @ConditionalOnSystemProperty(name = "user.name", value = "Daniel")
+    public String helloWorld() {
+        return "Hello World condition";
+    }
+}
+```
+
+```java
+@Target({ElementType.TYPE,ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Conditional(OnSystemPropertyCondition.class)
+public @interface ConditionalOnSystemProperty {
+
+    /**
+     * 系统属性名
+     */
+    String name();
+
+    /**
+     * 系统属性值
+     */
+    String value() default "";
+}
+```
+
+```java
+public class OnSystemPropertyCondition implements Condition {
+    @Override
+    public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+        Map<String, Object> attributes = metadata.getAnnotationAttributes(ConditionalOnSystemProperty.class.getName());
+        String propertyName = String.valueOf(attributes.get("name"));
+        String propertyValue = String.valueOf(attributes.get("value"));
+        String javaPropertyValue = SystemProperties.get(propertyName);
+        return propertyValue.equals(javaPropertyValue);
+    }
+}
+```
 
 
 

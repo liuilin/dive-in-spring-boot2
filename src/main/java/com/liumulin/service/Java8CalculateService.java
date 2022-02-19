@@ -12,11 +12,6 @@ import java.util.stream.Stream;
 @Profile("Java8")
 @Service
 public class Java8CalculateService implements CalculateService {
-
-    public static void main(String[] args) {
-        System.out.println(new Java8CalculateService().sum(1, 2, 3, 4, 5, 6, 7, 8, 9));
-    }
-
     @Override
     public Integer sum(Integer... values) {
         System.out.println("Java 8 Lambda 实现");
