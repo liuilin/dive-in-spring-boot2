@@ -13,6 +13,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 //@Import(HelloWorldConfiguration.class)
-@Import(HelloWorldImportSelector.class)
+@Import(HelloWorldImportSelector.class) // 比 @Import(HelloWorldConfiguration.class) 更具有优势，可以在里面增加判断条件
 public @interface EnableHelloWorld {
 }
