@@ -654,6 +654,132 @@ public class OnSystemPropertyCondition implements Condition {
 }
 ```
 
+# 三、理解 SpringApplication
+
+## SpringApplication 基本使用
+
+### 普通 SpringApplication 运行
+
+```java
+SpringApplication.run(DiveInSpringBootApplication.class, args)
+```
+
+### 自定义 SpringApplication 运行
+
+通过 SpringApplication API 调整
+
+```java
+SpringApplication springApplication = new SpringApplication(DiveInSpringBootApplication.class);
+springApplication.setBannerMode(Banner.Mode.CONSOLE);
+springApplication.setWebApplicationType(WebApplicationType.NONE);
+springApplication.setAdditionalProfiles("prod");
+springApplication.setHeadless(true);
+```
+
+通过 SpringApplicationBuilder API 调整
+
+```java
+new SpringApplicationBuilder(DiveInSpringBootApplication.class)
+	.bannerMode(Banner.Mode.CONSOLE)
+	.web(WebApplicationType.NONE)
+	.profiles("prod")
+	.headless(true)
+	.run(args);
+```
+
+## SpringApplication 准备阶段
+
+### 配置 Spring Boot Bean 源
+
+Java 配置 Class 或 XML 上下文配置文件集合，用于 Spring Boot 的 `BeanDefinitionLoader` 读取，并将配置源解析加载为 Spring Bean 定义
+
+> 数量：一个或多个以上
+
+**Java 配置 Class**
+
+用于 Spring 注解驱动中的 Java 配置类，大多数情况是 Spring 模式注解所标注的类，如 `@Configuration` 。
+
+**XML 上下文配置文件**
+
+用于 Spring 传统配置驱动中的 XML 文件
+
+### 推断 Web 引用类型
+
+根据当前应用 ClassPath 中是否存在相关实现类来推断 Web 应用的类型，包括：
+
+- Web Reactive：`WebApplicationType.REATIVE`
+- Web Servlet：`WebApplicationType.SERVLET`
+- 非 Web：`WebApplicationType.NONE`
+
+参考方法：`org.springframework.boot.WebApplicationType#deduceFromClasspath`
+
+```java
+static WebApplicationType deduceFromClasspath() {
+	if (ClassUtils.isPresent(WEBFLUX_INDICATOR_CLASS, null) && !ClassUtils.isPresent(WEBMVC_INDICATOR_CLASS, null)
+			&& !ClassUtils.isPresent(JERSEY_INDICATOR_CLASS, null)) {
+		return WebApplicationType.REACTIVE;
+	}
+	for (String className : SERVLET_INDICATOR_CLASSES) {
+		if (!ClassUtils.isPresent(className, null)) {
+			return WebApplicationType.NONE;
+		}
+	}
+	return WebApplicationType.SERVLET;
+}
+```
+
+### 推断引导类（Main Class）
+
+根据 Main 线程执行堆栈判断实际的引导类  
+
+参考方法：`org.springframework.boot.SpringApplication#deduceMainApplicationClass`
+
+```java
+private Class<?> deduceMainApplicationClass() {
+	try {
+		StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
+		for (StackTraceElement stackTraceElement : stackTrace) {
+			if ("main".equals(stackTraceElement.getMethodName())) {
+				return Class.forName(stackTraceElement.getClassName());
+			}
+		}
+	}
+	catch (ClassNotFoundException ex) {
+		// Swallow and continue
+	}
+	return null;
+}
+```
+
+### 加载应用上下文初始器（ApplicationContextInitializer）
+
+利用 Spring 工厂加载机制，实例化 ApplicationContextInitializer 实现类，并排序对象集合。
+
+实现：
+
+```java
+private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes, Object... args) {
+    ClassLoader classLoader = getClassLoader();
+    // Use names and ensure unique to protect against duplicates
+    Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
+    List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
+    AnnotationAwareOrderComparator.sort(instances);
+    return instances;
+}
+```
+
+技术：
+
+- 实现类：`org.springframework.core.io.support.SpringFactoriesLoader`
+- 配置资源：`META-INF/spring.factories`
+- 排序：`org.springframework.core.annotation.AnnotationAwareOrderComparator#sort(java.util.List<?>)`
+
+### 加载应用事件监听器（ApplicationListener）
+
+利用 Spring 工厂加载机制，实例化 ApplicationListener 实现类，并排序对象集合
+
+## SpringApplication 运行阶段
+
 
 
 

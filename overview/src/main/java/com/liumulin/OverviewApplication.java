@@ -6,10 +6,10 @@ import org.springframework.boot.web.servlet.ServletComponentScan;
 
 @SpringBootApplication
 @ServletComponentScan("com.liumulin.web.servlet")
-public class DiveInSpringBoot2Application {
+public class OverviewApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(DiveInSpringBoot2Application.class, args);
+        SpringApplication.run(OverviewApplication.class, args);
     }
 
 }
