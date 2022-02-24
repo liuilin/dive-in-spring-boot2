@@ -658,6 +658,8 @@ public class OnSystemPropertyCondition implements Condition {
 
 ## SpringApplication 基本使用
 
+[19. SpringApplication](https://docs.spring.io/spring-boot/docs/1.0.0.RC5/reference/html/boot-features-spring-application.html)
+
 ### 普通 SpringApplication 运行
 
 ```java
@@ -751,7 +753,7 @@ private Class<?> deduceMainApplicationClass() {
 }
 ```
 
-### 加载应用上下文初始器（ApplicationContextInitializer）
+### 加载应用上下文初始器（"backquote"ApplicationContextInitializer"backquote"）
 
 利用 Spring 工厂加载机制，实例化 ApplicationContextInitializer 实现类，并排序对象集合。
 
@@ -774,7 +776,7 @@ private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] 
 - 配置资源：`META-INF/spring.factories`
 - 排序：`org.springframework.core.annotation.AnnotationAwareOrderComparator#sort(java.util.List<?>)`
 
-### 加载应用事件监听器（ApplicationListener）
+### 加载应用事件监听器（"backquote"ApplicationListener"backquote"）
 
 利用 Spring 工厂加载机制，实例化 ApplicationListener 实现类，并排序对象集合
 
