@@ -55,7 +55,7 @@
 
 ### 1. 组件自动装配
 
-组件自动装配：Web MVC、Web Flux、JDBC
+[组件自动装配](https://github.com/liuilin/dive-in-spring-boot2/blob/e2154ce4ef804410ecfd6350a82134c8504806a4/autoconfigure/src/main/java/com/liumulin/boostrap/EnableAutoConfigurationBootstrap.java)：Web MVC、Web Flux、JDBC
 
 > Spring Boot 将 Spring Framework 手动装配转为了自动装配，这可以帮助我们减少许多代码的编写，它是有一点条件方式的触发，也是帮助我们去理解相应的特性。让我们更关注于业务的开发，并提高开发效率
 
@@ -88,7 +88,7 @@ Web MVC 依赖
 
 - 指标（Metrics）：/actuator/metrics
 
-  > metrics 信息可以是 CPU、内存、磁盘等利用率的信息
+  > metrics 信息可以是 磁盘、内存、CPU等利用率信息
 
 - 健康检查（Health Check）：/actuator/health
 
@@ -96,7 +96,7 @@ Web MVC 依赖
 
 - 外部化配置（Externalized Configuration）：/actuator/configprops
 
-  > 不用写代码的方式调整应用的行为，比如 Web 端口，可以通过 -Dserver.port=8090（或 properties、yml） 来做相应的调整，相应的应用服务器的端口就会发生相应的变化。而要是以前可能需要配置一个 XML 的方式或者写代码的方式来操作
+  > 不用写代码的方式调整应用的行为，比如 Web 端口，可以通过 -Dserver.port=8090（或 properties、yml） 来做相应的调整，相应的应用服务器的端口就会发生相应的变化。而要是以前可能需要配置一个 XML 的方式或者写代码的方式来完成操作
 
 ## Web 应用
 
@@ -457,11 +457,10 @@ public @interface SecondLevelRepository {
 > }
 > ```
 >
-> 
-
-
 
 ImportSelector（3.1） 比 `Configuration` （3.0）方式更加灵活，因为里面可以添加一些分支、条件判断啥的
+
+> `Configuration` 是固定标注哪个是 `Component` ，而 ImportSelector 可以通过判断条件动态获取到哪个 Bean
 
 ## Spring @Enable 模块装配
 
@@ -753,7 +752,7 @@ private Class<?> deduceMainApplicationClass() {
 }
 ```
 
-### 加载应用上下文初始器（"backquote"ApplicationContextInitializer"backquote"）
+### 加载应用上下文初始器（`ApplicationContextInitializer`）
 
 利用 Spring 工厂加载机制，实例化 ApplicationContextInitializer 实现类，并排序对象集合。
 
@@ -776,7 +775,7 @@ private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] 
 - 配置资源：`META-INF/spring.factories`
 - 排序：`org.springframework.core.annotation.AnnotationAwareOrderComparator#sort(java.util.List<?>)`
 
-### 加载应用事件监听器（"backquote"ApplicationListener"backquote"）
+### 加载应用事件监听器（`ApplicationListener`）
 
 利用 Spring 工厂加载机制，实例化 ApplicationListener 实现类，并排序对象集合
 
