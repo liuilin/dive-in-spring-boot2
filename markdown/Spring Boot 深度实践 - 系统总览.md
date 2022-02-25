@@ -6,7 +6,7 @@
 >
 > 2. 拥有优秀的家族基因
 >
->    我们平时说的 Spring 呢，通常指的是 Spring 的技术体系，`Spring Framework` `Spring Boot` `Spring Cloud` ，从功能上来说呢，`Spring Boot` 继承了 Spring 的所有特性，同时它又背靠着 `Spring Data` `Spring Security` 等先进技术，在 Spring 家族中，起到了一个承上启下的作用。同时它为底层的 `Spring Framework` 快速的搭建 Spring 应用，为高层的 `Spring Cloud` 提供基础设施，所以 Spring 官方都使用的是 **BUILD ANYTHING** 来体现它的家族地位
+>    我们平时说的 Spring 呢，通常指的是 Spring 的技术体系 `Spring Framework`、`Spring Boot` 以及 `Spring Cloud` ，从功能上来讲呢，`Spring Boot` 继承了 Spring 的所有特性，而它又同时背靠 `Spring Data`、`Spring Security` 等先进技术，在 Spring 家族中，起到了一个承上启下的作用。同时它为底层的 `Spring Framework` 快速的搭建 Spring 应用，为高层的 `Spring Cloud` 提供基础设施，所以 Spring 官网都使用的是 **BUILD ANYTHING** 来体现它的家族地位
 >
 > 3. 与时俱进的技术信仰
 >
@@ -14,7 +14,7 @@
 >
 >    `Spring Boot 2.0` 时代呢，把 Java EE 以前的必选项调整为了可选项，这个我认为是 Sun 公司轰然倒塌的原因，而且 Oracle 对 Java 的热情是骤减的，实践发展举步维艰。
 >
->    反观 Spring 的阵营呢，技术可以说是蒸蒸日上，它以广阔的胸襟去拥抱业界的变化，最为显著的变化可以说是编程模型的变化。以 Reactive 为代表的编程范式，使用 **异步+非阻塞** 的方式帮助程序充分的利用系统资源，`Spring Framework` 提供了一套完整的 Reactive 技术栈，其中包括 Web 层的 WebFlux，它就是一种非阻塞的 Web 框架。同时在数据存储方面呢 Spring 已经提升到了相关的核心基础设施，包括 Mongo，Redis 等。最终使用 Reactive 来实现异步+非阻塞的编程方式，这个就是目前的技术趋势。而 `Spring 5` 或者说是 `Spring Boot 2.0` 在提早的布局，等待趋势变为现实
+>    反观 Spring 的阵营，技术可以说是蒸蒸日上，它以广阔的胸襟去拥抱业界的变化，最为显著的变化可以说是编程模型的变化。以 Reactive 为代表的编程范式，使用 **异步+非阻塞** 的方式帮助程序充分的利用系统资源，`Spring Framework` 提供了一套完整的 Reactive 技术栈，其中包括 Web 层的 WebFlux，它就是一种非阻塞的 Web 框架。同时在数据存储方面呢 Spring 已经提升到了相关的核心基础设施，包括 Mongo，Redis 等。最终使用 Reactive 来实现异步+非阻塞的编程方式，这就是目前的技术趋势。而 `Spring 5` 或者说是 `Spring Boot 2.0` 在提早的布局，等待趋势变为现实
 
 问题？
 
@@ -57,7 +57,7 @@
 
 组件自动装配：Web MVC、Web Flux、JDBC
 
-> Spring Boot 将 Spring Framework 手动的方式转为了自动的方式，这可以帮助我们减少许多代码的编写，它是有一点条件方式的触发，也是帮助我们去理解相应的特性，更关注我们业务的开发，提高我们的开发效率
+> Spring Boot 将 Spring Framework 手动装配转为了自动装配，这可以帮助我们减少许多代码的编写，它是有一点条件方式的触发，也是帮助我们去理解相应的特性。让我们更关注于业务的开发，并提高开发效率
 
 激活：`@EnableAutoConfiguration`
 
