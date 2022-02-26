@@ -779,6 +779,10 @@ private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] 
 
 利用 Spring 工厂加载机制，实例化 ApplicationListener 实现类，并排序对象集合
 
+> SpringApplicationEvent（Spring Boot）
+>
+> ApplicationEvent（Spring Framework）
+
 ## SpringApplication 运行阶段
 
 
