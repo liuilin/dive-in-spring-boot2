@@ -781,9 +781,69 @@ private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] 
 
 > SpringApplicationEvent（Spring Boot）
 >
-> ApplicationEvent（Spring Framework）
+> ApplicationEvent（Spring Framework）：
+>
+> java.util.EventObject
+> org.springframework.context.ApplicationEvent
+> org.springframework.context.event.ApplicationContextEvent
+> org.springframework.context.event.ContextRefreshedEvent（上下文刷新事件）
 
 ## SpringApplication 运行阶段
+
+### 加载 SpringApplication 运行监听器（SpringApplicationRunListeners）
+
+利用 Spring 工厂加载机制，读取 "backquote"SpringApplicationRunListener"backquote" 对象集合，并且封装到组合类 "backquote"SpringApplicationRunListeners"backquote"
+
+> 组合对象模式：org.springframework.boot.SpringApplicationRunListeners#starting（循环的迭代去执行）
+
+### 运行 SpringApplication 运行监听器（SpringApplicationRunListeners）
+
+SpringApplicationRunListener 监听多个运行状态方法：
+
+| 监听方法                                         | 阶段说明                                                     | Spring Boot 起始版本 |
+| ------------------------------------------------ | ------------------------------------------------------------ | -------------------- |
+| starting()                                       | Spring 应用刚启动                                            | 1.0                  |
+| environmentPrepared(ConfigurableEnvironment)     | ConfigurableEnvironment 准备妥当，允许将其调整               | 1.0                  |
+| contextPrepared(ConfigurableApplicationContext)  | ConfigurableApplicationContext 准备妥当，允许将其调整        | 1.0                  |
+| contextLoaded(ConfigurableApplicationContext)    | ConfigurableApplicationContext 已装载，但仍未启动            | 1.0                  |
+| started(ConfigurableApplicationContext)          | ConfigurableApplicationContext 已启动，此时 Spring Bean 已初始化完成 | 2.0                  |
+| running(ConfigurableApplicationContext)          | Spring 应用正在运行                                          | 2.0                  |
+| failed(ConfigurableApplicationContext,Throwable) | Spring 应用运行失败                                          | 2.0                  |
+
+### 监听 Spring Boot 事件 / Spring 事件
+
+Spring Boot 通过 SpringApplicationRunListener 的实现类 EventPublishRunListener 利用 Spring Framework 事件 API 来广播 Spring Boot 事件
+
+**Spring Framework 事件/监听器编程模型**
+
+- Spring 应用事件
+  - 普通应用事件： ApplicationEvent
+  - 应用上下文事件： ApplicationContextEvent
+- Spring 应用监听器
+  - 接口编程模型： ApplicationListener
+  - 注解编程模型： @EventListener
+- Spring 应用事广播器
+  - 接口： ApplicationEventMulticaster
+  - 实现类： SimpleApplicationEventMulticaster
+    - 执行模式：同步或异步
+
+EventPublishingRunListener 监听方法与 Spring Boot 事件对应关系
+
+| 监听方法                                         | Spring Boot 事件                    | Spring Boot 起始版本 |
+| ------------------------------------------------ | ----------------------------------- | -------------------- |
+| starting()                                       | ApplicationStartingEvent            | 1.5                  |
+| environmentPrepared(ConfigurableEnvironment)     | ApplicationEnvironmentPreparedEvent | 1.0                  |
+| contextPrepared(ConfigurableApplicationContext)  |                                     |                      |
+| contextLoaded(ConfigurableApplicationContext)    | ApplicationPreparedEvent            | 1.0                  |
+| started(ConfigurableApplicationContext)          | ApplicationStartedEvent             | 2.0                  |
+| running(ConfigurableApplicationContext)          | ApplicationReadyEvent               | 2.0                  |
+| failed(ConfigurableApplicationContext,Throwable) | ApplicationFailedEvent              | 1.0                  |
+
+### 创建 Spring 应用上下文（ConfigurableApplicationContext）
+
+### 创建 Environment
+
+
 
 
 
