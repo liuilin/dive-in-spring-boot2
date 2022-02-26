@@ -7,3 +7,7 @@ com.liumulin.context.HelloWorldApplicationContextInitializer
 org.springframework.context.ApplicationListener=\
 com.liumulin.listener.AfterHelloWorldApplicationListener,\
 com.liumulin.listener.HelloWorldApplicationListener
+
+# Run Listeners
+org.springframework.boot.SpringApplicationRunListener=\
+com.liumulin.bootListener.HelloWorldRunListener
