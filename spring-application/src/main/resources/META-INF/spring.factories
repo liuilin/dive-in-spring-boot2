@@ -6,7 +6,8 @@ com.liumulin.context.HelloWorldApplicationContextInitializer
 # Application Listeners
 org.springframework.context.ApplicationListener=\
 com.liumulin.listener.AfterHelloWorldApplicationListener,\
-com.liumulin.listener.HelloWorldApplicationListener
+com.liumulin.listener.HelloWorldApplicationListener,\
+com.liumulin.listener.BeforeConfigFileApplicationListener
 
 # Run Listeners
 org.springframework.boot.SpringApplicationRunListener=\
