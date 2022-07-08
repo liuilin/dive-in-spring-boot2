@@ -6,6 +6,7 @@
         <module>spring-application</module>
         <module>overview</module>
         <module>autoconfigure</module>
+        <module>spring-reactive</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>

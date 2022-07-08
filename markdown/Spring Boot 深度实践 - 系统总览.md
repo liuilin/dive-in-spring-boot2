@@ -853,6 +853,73 @@ EventPublishingRunListener 监听方法与 Spring Boot 事件对应关系
 
 
 
+## 从 Reactive 到 WebFlux
+
+### 理解 Reactive
+
+#### Reactive Programming 特性
+
+Reactor（同步非阻塞）；Proactor（异步非阻塞）
+
+观察者模式（Observe）：推的模式，从服务器推往客户端（事件/监听者模式，相当于监听事件）
+
+迭代器模式（Iterator）：拉的模式，从客户端往服务器拉
+
+
+
+并行并不是银弹（并不能解决所有问题）：8 核 CPU 开 10000 个线程，那 JVM 受不了，操作系统也更加受不了
+
+NIO 其实就是 Reactor 模式，也就是同步非阻塞
+
+Proactor 是异步非阻塞
+
+同步/异步是线程模型，而阻塞/非阻塞是编程模型
+
+**思考：**Future.get() 方式会将异步并行变为串行，导致阻塞。执行时长和串行一样，还增加了线程开销。所以并发模型或者说线程池的一些底层 API 用起来要非常的小心，增加了我们使用的难度
+
+非阻塞是编程模型，并不是并发模型
+
+
+
+**设计模式（Design Patterns）**
+
+- 扩展模式：观察者（[Observer](https://en.wikipedia.org/wiki/Observer_pattern)） - 推模式（push-based）
+- 混合模式：[Reactor](https://en.wikipedia.org/wiki/Reactor_pattern)（同步非阻塞）、[Proactor](https://en.wikipedia.org/wiki/Proactor_pattern)（异步非阻塞），共同点都是非阻塞
+- 对立模式：迭代器（[Iterator](https://en.wikipedia.org/wiki/Iterator_pattern)） - 拉模式（pull-based）
+
+**模式对比**
+
+An Observable(RxJava) is the asynchronous/push “[dual](http://en.wikipedia.org/wiki/Dual_(category_theory))” to the synchronous/pull Iterable  
+
+| event          | Iterable (pull)  | Observable (push)  |
+| -------------- | ---------------- | ------------------ |
+| data           | T next()         | onNext(T)          |
+| discover error | throws Exception | onError(Exception) |
+| complete       | !hasNext()       | onCompleted()      |
+
+
+
+**数据结构（Data Structure）**
+
+- 流式（Streams）
+- 序列（Sequences ）
+- 事件（Events）  
+
+**并发模式（Concurrency Model）**
+
+非阻塞（Non-Blocking）
+
+- 同步（Synchronous ）
+- 异步（Asynchronous ）  
+
+小结：屏蔽并发编程细节，如线程、同步、线程安全以及并发数据结构
+
+> 可以让开发者关注于加锁、解锁等等的细节，从而不犯错
+
+
+
+
+
 
 
 
