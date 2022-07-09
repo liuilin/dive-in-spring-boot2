@@ -21,287 +21,431 @@
 
 ### 传统编程模型中的某些困境
 
-**Reactor 认为阻塞可能是浪费的**
+1. **Reactor 认为阻塞可能是浪费的**
 
-> 3.1. Blocking Can Be Wasteful
->
-> Modern applications can reach huge numbers of concurrent users, and, even though the capabilities of modern hardware have continued to improve, performance of modern software is still a key concern.
->
-> There are broadly two ways one can improve a program’s performance:
->
-> 1. **parallelize:** use more threads and more hardware resources.
-> 2. **seek more efficiency** in how current resources are used.
->
-> Usually, Java developers write programs using blocking code. This practice is fine until there is a performance bottleneck, at which point the time comes to introduce additional threads, running similar blocking code. But this scaling in resource utilization can quickly introduce contention and concurrency problems.
->
-> Worse still, blocking wastes resources.
->
-> So the parallelization approach is not a silver bullet.  
+   > 3.1. Blocking Can Be Wasteful
+   >
+   > Modern applications can reach huge numbers of concurrent users, and, even though the capabilities of modern hardware have continued to improve, performance of modern software is still a key concern.
+   >
+   > There are broadly two ways one can improve a program’s performance:
+   >
+   > 1. **parallelize:** use more threads and more hardware resources.
+   > 2. **seek more efficiency** in how current resources are used.
+   >
+   > Usually, Java developers write programs using blocking code. This practice is fine until there is a performance bottleneck, at which point the time comes to introduce additional threads, running similar blocking code. But this scaling in resource utilization can quickly introduce contention and concurrency problems.
+   >
+   > Worse still, blocking wastes resources.
+   >
+   > So the parallelization approach is not a silver bullet.  
 
-观点归纳
+   **观点归纳**
 
-- 阻塞导致性能瓶颈和浪费资源
-- 增加线程可能会引起资源竞争和并发问题
+   - 阻塞导致性能瓶颈和浪费资源
 
-  > 比如并发时的可见性、原子性问题，读和写看到的东西是不同的
-- 并行的方式不是银弹（不能解决所有问题）
+   - 增加线程可能会引起资源竞争和并发问题
 
-  > 银弹：万金油，什么都能做，但不精
-  >
-  > 比如你 8 核的机器来开一万个线程，那 JVM 受不了，你的操作系统更加受不了
+     > 比如并发时的可见性、原子性问题，读和写看到的东西是不同的
 
-**理解阻塞的弊端**
+   - 并行的方式不是银弹（不能解决所有问题）
 
-串行（阻塞）场景 - 数据顺序加载，加载流程如下：
+     > 银弹：万金油，什么都能做，但不精
+     >
+     > 比如你 8 核的机器来开一万个线程，那 JVM 受不了，你的操作系统更加受不了
 
-```sequence
-load() ->> loadConfigurations() : 耗时 1s
-loadConfigurations() - >>  loadUsers() : 耗时 2s
-loadUsers() - >> loadOrders() : 耗时 3s
-```
+   **理解阻塞的弊端**
 
-Java 实现
+   串行（阻塞）场景 - 数据顺序加载，加载流程如下：
 
-```java
-public class DataLoader {
-    public static void main(String[] args) {
-        new DataLoader().load();
-    }
+   ```sequence
+   load() ->> loadConfigurations() : 耗时 1s
+   loadConfigurations() - >>  loadUsers() : 耗时 2s
+   loadUsers() - >> loadOrders() : 耗时 3s
+   ```
 
-    public final void load() {
-        long startTime = System.currentTimeMillis(); // 开始时间
-        doLoad(); // 具体执行
-        long costTime = System.currentTimeMillis() - startTime; // 消耗时间
-        System.out.println("load() 总耗时：" + costTime + " 毫秒");
-    }
+   Java 实现
 
-    protected void doLoad() { // 串行计算
-        loadConfigurations(); // 耗时 1s
-        loadUsers(); // 耗时 2s
-        loadOrders(); // 耗时 3s
-    } // 总耗时 1s + 2s + 3s = 6s
+   ```java
+   public class DataLoader {
+       public static void main(String[] args) {
+           new DataLoader().load();
+       }
+   
+       public final void load() {
+           long startTime = System.currentTimeMillis(); // 开始时间
+           doLoad(); // 具体执行
+           long costTime = System.currentTimeMillis() - startTime; // 消耗时间
+           System.out.println("load() 总耗时：" + costTime + " 毫秒");
+       }
+   
+       protected void doLoad() { // 串行计算
+           loadConfigurations(); // 耗时 1s
+           loadUsers(); // 耗时 2s
+           loadOrders(); // 耗时 3s
+       } // 总耗时 1s + 2s + 3s = 6s
+   
+       protected final void loadConfigurations() {
+           loadMock("loadConfigurations()", 1);
+       }
+   
+       protected final void loadUsers() {
+           loadMock("loadUsers()", 2);
+       }
+   
+       protected final void loadOrders() {
+           loadMock("loadOrders()", 3);
+       }
+   
+       private void loadMock(String source, int seconds) {
+           try {
+               long startTime = System.currentTimeMillis();
+               long milliseconds = TimeUnit.SECONDS.toMillis(seconds);
+               Thread.sleep(milliseconds);
+               long costTime = System.currentTimeMillis() - startTime;
+               System.out.printf("[线程 : %s] %s 耗时 : %d 毫秒\n",
+                       Thread.currentThread().getName(), source, costTime);
+           } catch (InterruptedException e) {
+               throw new RuntimeException(e);
+           }
+       }
+   }
+   ```
 
-    protected final void loadConfigurations() {
-        loadMock("loadConfigurations()", 1);
-    }
+   > 结论：由于加载过程串行执行的关系，导致消耗线性累加（总耗时 6s）。Blocking 模式即串行执行
 
-    protected final void loadUsers() {
-        loadMock("loadUsers()", 2);
-    }
+   **理解并行的复杂**
 
-    protected final void loadOrders() {
-        loadMock("loadOrders()", 3);
-    }
+   并行（非阻塞）场景 - 并行数据加载，加载流程如下：
 
-    private void loadMock(String source, int seconds) {
-        try {
-            long startTime = System.currentTimeMillis();
-            long milliseconds = TimeUnit.SECONDS.toMillis(seconds);
-            Thread.sleep(milliseconds);
-            long costTime = System.currentTimeMillis() - startTime;
-            System.out.printf("[线程 : %s] %s 耗时 : %d 毫秒\n",
-                    Thread.currentThread().getName(), source, costTime);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-}
-```
+   ```sequence
+   load() ->> loadConfigurations() : 耗时 1s
+   load() ->> loadUsers() : 耗时 2s
+   load() ->> loadOrders() : 耗时 3s
+   ```
 
-> 结论：由于加载过程串行执行的关系，导致消耗线性累加（总耗时 6s）。Blocking 模式即串行执行
+   Java 实现
+
+   ```java
+   public class ParallelDataLoader extends DataLoader {
+       public static void main(String[] args) {
+           new ParallelDataLoader().load();
+       }
+   
+       @Override
+       protected void doLoad() { // 并行计算
+           ExecutorService executorService = Executors.newFixedThreadPool(3); // 创建线程池
+           CompletionService completionService = new ExecutorCompletionService(executorService);
+           completionService.submit(super::loadConfigurations, null); // 耗时 >= 1s
+           completionService.submit(super::loadUsers, null); // 耗时 >= 2s
+           completionService.submit(super::loadOrders, null); // 耗时 >= 3s
+           int count = 0;
+           while (count < 3) { // 等待三个任务完成
+               // 一直拉取，知道全部拉取完就结束线程
+               if (completionService.poll() != null) {
+                   count++;
+               }
+           }
+           executorService.shutdown();
+       } // 总耗时 max(1s, 2s, 3s) >= 3s
+   }
+   ```
+
+   > 结论：使用并行执行，由于执行方法之间没有相互依赖，所以并行执行耗时降低到了 3s（即最耗时的线程）
+
+   **延伸思考**
+
+   1. 如果阻塞导致性能瓶颈和资源浪费的话，Reactive 也能解决这个问题？
+
+   2. 为什么不直接使用 Future#get() 方法强制所有任务执行完毕，然后再统计总耗时？
+
+      [答案](#Future 问答2)
+
+   3. 由于以上三个方法之间没有数据依赖关系，所以执行方式由串行调整为并行后，能够达到性能提升的效果。如果方法之间存在依赖关系时，那么提升效果是否还会如此明显，并且如何确保它们的执行顺序？
+
+2. **Reactor 认为异步不一定能够救赎**
+
+   > 3.2. Asynchronicity to the Rescue?
+   >
+   > The second approach (mentioned earlier), seeking more efficiency, can be a solution to the resource wasting problem. By writing *asynchronous*, *non-blocking* code, you let the execution switch to another active task **using the same underlying resources** and later come back to the current process when the asynchronous processing has finished.
+   >
+   > Java offers two models of asynchronous programming:
+   >
+   > - **Callbacks**: Asynchronous methods do not have a return value but take an extra callback parameter (a lambda or anonymous class) that gets called when the result is available. A well known example is Swing’s EventListener hierarchy.
+   > - **Futures**: Asynchronous methods return a Future<T> immediately. The asynchronous process computes a T value, but the Future object wraps access to it. The value is not immediately available, and the object can be polled until the value is available. For instance, ExecutorService running Callable<T> tasks use Future objects.
+   >
+   > Are these techniques good enough? Not for every use case, and both approaches have limitations.
+   >
+   > Callbacks are hard to compose together, quickly leading to code that is difficult to read and maintain (known as "Callback Hell").
+   >
+   > Futures are a bit better than callbacks, but they still do not do well at composition, despite the improvements brought in Java 8 by CompletableFuture . 
+
+   **观点归纳**
+
+   - Callbacks 是解决非阻塞的方案，然而他们之间很难组合，并且快速地将代码引导至 "Callback Hell"
+     的不归路
+   - Futures 相对于 Callbacks 好一点，不过还是无法组合，不过 CompletableFuture 能够提升这方面
+     的不足  
+
+   **理解 "Callback Hell"**
+
+   ```java
+   public class JavaGUI {
+       public static void main(String[] args) {
+           JFrame jFrame = new JFrame("GUI 示例");
+           jFrame.setBounds(500, 300, 400, 300);
+           LayoutManager layoutManager = new BorderLayout(400, 300);
+           jFrame.setLayout(layoutManager);
+           jFrame.addMouseListener(new MouseAdapter() { // callback 1
+               @Override
+               public void mouseClicked(MouseEvent e) {
+                   System.out.printf("[线程 : %s] 鼠标点击，坐标(X : %d, Y : %d)\n",
+                           currentThreadName(), e.getX(), e.getY());
+               }
+           });
+           jFrame.addWindowListener(new WindowAdapter() { // callback 2
+               @Override
+               public void windowClosing(WindowEvent e) {
+                   System.out.printf("[线程 : %s] 清除 jFrame... \n", currentThreadName());
+                   jFrame.dispose(); // 清除 jFrame
+               }
+   
+               @Override
+               public void windowClosed(WindowEvent e) {
+                   System.out.printf("[线程 : %s] 退出程序... \n", currentThreadName());
+                   System.exit(0); // 退出程序
+               }
+           });
+           System.out.println("当前线程：" + currentThreadName());
+           jFrame.setVisible(true);
+       }
+   
+       private static String currentThreadName() { // 当前线程名称
+           return Thread.currentThread().getName();
+       }
+   }
+   ```
+
+   Java Swing 的 GUI 程序鼠标点击就是非阻塞回调的方式，也就是事件监听（Callback 回调方式）。每次的鼠标回调事件都没有被主线程阻塞
+
+   > Callable、Runnable 都是 @FunctionalInterface 修饰的函数式接口
+   >
+   > 同步、异步是线程模型；阻塞、非阻塞是编程模型
+
+   结论：Java GUI 以及事件/监听模式基本采用匿名内置类实现，即回调实现。从本例可以得出，鼠标的点击确实没有被其他线程给阻塞。不过当监听的维度增多时，Callback 实现也随之增多。同时，事件/监听者模式的并发模型可为同步或异步。
+
+   > 回顾：
+   >
+   > Spring 事件/监听器（同步/异步）：
+   >
+   > - 事件： ApplicationEvent
+   > - 事件监听器： ApplicationListener
+   > - 事件广播器： ApplicationEventMulticaster
+   > - 事件发布器： ApplicationEventPublisher
+   >
+   > Servlet 事件/监听器
+   >
+   > - 同步
+   >   - 事件： ServletContextEvent
+   >   - 事件监听器： ServletContextListener
+   > - 异步
+   >   - 事件： AsyncEvent
+   >   - 事件监听器： AsyncListener  
+
+   **理解 Future 阻塞问题**
+
+   如果 DataLoader 的 loadOrders() 方法依赖于 loadUsers() 的结果，而 loadUsers() 又依赖 loadConfigurations() ，调整实现：  
+
+   ```java
+   /**
+    * {@link Future} 阻塞数据加载器
+    * @author Daniel
+    */
+   public class FutureBlockingDataLoader extends DataLoader {
+       public static void main(String[] args) {
+           new FutureBlockingDataLoader().load();
+       }
+   
+       @Override
+       protected void doLoad() {
+           ExecutorService executorService = Executors.newFixedThreadPool(3); // 创建线程池
+           runCompletely(executorService.submit(super::loadConfigurations));
+           runCompletely(executorService.submit(super::loadUsers));
+           runCompletely(executorService.submit(super::loadOrders));
+           executorService.shutdown();
+       }
+   
+       private void runCompletely(Future<?> future) {
+           try {
+               future.get();
+           } catch (Exception e) {
+           }
+       }
+   }
+   ```
+
+   结论：Future#get() 方法不得不等待任务执行完成，换言之，如果多个任务提交后，返回的多个 Future 逐一调 get() 方法时，将会依次阻塞，任务的执行从并行变为串行。
+
+   > 这也是之前 ”“延伸思考”问答 2 的<span id="Future 问答2">答案：</span>
+
+   **理解 Future 链式问题**
+
+   由于 Future 无法实现异步执行结果链式处理，尽管 FutureBlockingDataLoader 能够解决方法数据依赖以及顺序执行的问题，不过它将并行执行带回了阻塞（串行）执行。所以，它不是一个理想实现。不过 CompletableFuture 可以帮助提升 Future 的限制：  
+
+   ```java
+   public class CompletableFutureChainDataLoader extends DataLoader {
+       public static void main(String[] args) {
+           new CompletableFutureChainDataLoader().load();
+       }
+   
+       @Override
+       protected void doLoad() {
+           CompletableFuture
+                   .runAsync(super::loadConfigurations)
+                   .thenRun(super::loadUsers)
+                   .thenRun(super::loadOrders)
+                   .whenComplete((res, throwable) -> { // 完成时回调
+                       System.out.println("加载完成");
+                   })
+                   .join(); // 等待完成
+       }
+   }
+   ```
+
+   ```sequence
+   main 线程 ->> CompletableFuture 线程 : 线程切换
+   CompletableFuture 线程 ->> loadConfigurations() : 耗时 1s
+   loadConfigurations() ->> loadUsers() : 耗时 2s
+   loadUsers() ->> loadOrders() : 耗时 3s
+   loadOrders() ->> wehenComplete(BiConsumer) : 执行完成时回调
+   CompletableFuture 线程 ->> main 线程: 等待 CompletableFuture 线程执行结束
+   ```
+
+   结论：
+
+   - 如果阻塞导致性能瓶颈和资源浪费的话，Reactive 也能解决这个问题？
+   - CompletableFuture 属于异步操作，如果强制等待结束的话，又回到了阻塞编程的方式，那么 Reactive 也会面临同样的问题吗？
+   - CompletableFuture 让我们理解到非阻塞不一定提升性能，那么 Reactive 也会这样吗？
+
+3. **[Reactive Streams JVM]((https://github.com/reactive-streams/reactive-streams-jvm)) 认为异步系统和资源消费需要特殊处理**
+
+   > Handling streams of data—especially “live” data whose volume is not predetermined—requires special care in an asynchronous system. The most prominent issue is that resource consumption needs to be carefully controlled such that a fast data source does not overwhelm the stream destination. Asynchrony is needed in order to enable the parallel use of computing resources, on collaborating network hosts or multiple CPU cores within a single machine.
+
+   观点归纳：
+
+   - 流数据大小难以预判
+
+   - 异步编程复杂（底层 API 多语义。调用起来复杂）
+
+   - 数据源和消费端之间资源消费难以平衡
+
+     > such that a fast data source does not overwhelm the stream destination：这样一个快速的数据源就不会压倒流目的地。（也就是说会遇到数据生产源发射数据比较快，消费端消费比较慢等一系列问题）
+
+4. **思考**
+
+   - Reactive 到底是什么？
+
+   - Reactive 的使用场景在哪里？
+   - Reactive 存在怎样限制/不足？
+
+### Reactive Programming 定义
+
+RxJava 和竞争对手 Reactor
+
+- [The Reactive Manifesto](https://www.reactivemanifesto.org/)
+
+  > Reactive Systems are: Responsive, Resilient, Elastic and Message Driven
+
+  关键字：
+
+  - 响应的（Responsive）
+  - 适应性强的（Resilient）
+  - 弹性的（Elastic）
+  - 消息驱动的（Message Driven）
+
+  侧重点：
+
+  - 面向 Reactive 系统
+  - Reactive 系统原则
+
+- [Reactive 维基百科](https://en.wikipedia.org/wiki/Reactive_programming)
+
+  > In computing, reactive programming is a declarative programming paradigm concerned with **data streams** and **the propagation of change**. With this paradigm, it's possible to express static (e.g., arrays) or dynamic (e.g., event emitters) data streams with ease, and also communicate that an inferred dependency within the associated execution model exists, which facilitates the automatic propagation of the changed data flow.
+
+  关键字：
+
+  - 数据流（data streams ）
+  - 传播变化（ propagation of change）
+
+  侧重点：
+
+  - 数据结构
+  - 数组（arrays）
+  - 事件发射器（event emitters）
+  - 数据变化
+
+  技术连接：
+
+  - 数据流：Java 8 `Stream`
+
+  - 传播变化：Java `Observable` / `Observer`
+
+  - 事件：Java `EventObject` / `EventListener`
+
+    > 规范（规定）：与事件相关的都要实现 EventObject，监听器相关的要实现 EventListenr。比如 Spring 中的 `ApplicationEvent` 和 `ApplicationListener`
+
+- Spring Framework
+
+  [Web on Reactive Stack](https://docs.spring.io/spring-framework/docs/current/reference/html/web-reactive.html#spring-webflux)
+
+  > The term, “reactive,” refers to programming models that are built around reacting to change — network components reacting to I/O events, UI controllers reacting to mouse events, and others. In that sense, non-blocking is reactive, because, instead of being blocked, we are now in the mode of reacting to notifications as operations complete or data becomes available.
+
+  关键字：
+
+  - 变化响应（reacting to change ）
+  - 非阻塞（non-blocking）
+
+  侧重点：
+
+  - 响应通知
+  - 操作完成（operations complete）
+  - 数据可用（data becomes available）
+
+  技术连接：
+
+  - 非阻塞：Servlet 3.1 `ReadListener` / `WriteListener`
+  - 响应通知：Servlet 3.0 `AsyncListener`
+
+- [ReactiveX](https://reactivex.io/intro.html)
+
+  > It extends the observer pattern to support sequences of data and/or events and adds operators that allow you to compose sequences together declaratively while abstracting away concerns about things like low-level threading, synchronization, thread-safety, concurrent data structures, and non-blocking I/O.
+
+  关键词：
+
+  - 观察者模式（Observer pattern ）
+  - 数据/事件序列（Sequences of data and/or events )
+  - 序列操作符（Opeators）
+  - 屏蔽并发细节（abstracting away…）
+
+  侧重点：
+
+  - 设计模式
+  - 数据结构
+  - 数据操作
+  - 并发模型
+
+  技术连接：
+
+  - 观察者模式：Java `Observable` / `Observer`
+  - 数据/事件序列：Java 8 Stream
+  - 数据操作：Java 8 Stream
+  - 屏蔽并发细节（abstracting away…）： `Exectuor` 、 `Future` 、 `Runnable`
+
+- Reactor
+
+- @andrestaltz
 
 
 
-并行（非阻塞）场景 - 并行数据加载，加载流程如下：
 
-```sequence
-load() ->> loadConfigurations() : 耗时 1s
-load() ->> loadUsers() : 耗时 2s
-load() ->> loadOrders() : 耗时 3s
-```
-
-Java 实现
-
-```java
-public class ParallelDataLoader extends DataLoader {
-    public static void main(String[] args) {
-        new ParallelDataLoader().load();
-    }
-
-    @Override
-    protected void doLoad() { // 并行计算
-        ExecutorService executorService = Executors.newFixedThreadPool(3); // 创建线程池
-        CompletionService completionService = new ExecutorCompletionService(executorService);
-        completionService.submit(super::loadConfigurations, null); // 耗时 >= 1s
-        completionService.submit(super::loadUsers, null); // 耗时 >= 2s
-        completionService.submit(super::loadOrders, null); // 耗时 >= 3s
-        int count = 0;
-        while (count < 3) { // 等待三个任务完成
-            // 一直拉取，知道全部拉取完就结束线程
-            if (completionService.poll() != null) {
-                count++;
-            }
-        }
-        executorService.shutdown();
-    } // 总耗时 max(1s, 2s, 3s) >= 3s
-}
-```
-
-> 结论：使用并行执行，由于执行方法之间没有相互依赖，所以并行执行耗时降低到了 3s（即最耗时的线程）
-
-
-
-**延伸思考**
-
-1. 如果阻塞导致性能瓶颈和资源浪费的话，Reactive 也能解决这个问题？
-
-2. 为什么不直接使用 Future#get() 方法强制所有任务执行完毕，然后再统计总耗时？
-
-   [答案](#Future 问答2)
-
-3. 由于以上三个方法之间没有数据依赖关系，所以执行方式由串行调整为并行后，能够达到性能提升的
-   效果。如果方法之间存在依赖关系时，那么提升效果是否还会如此明显，并且如何确保它们的执行顺
-   序？  
-
-
-
-### Reactor 认为异步不一定能够救赎
-
-> 3.2. Asynchronicity to the Rescue?
->
-> The second approach (mentioned earlier), seeking more efficiency, can be a solution to the resource wasting problem. By writing *asynchronous*, *non-blocking* code, you let the execution switch to another active task **using the same underlying resources** and later come back to the current process when the asynchronous processing has finished.
->
-> Java offers two models of asynchronous programming:
->
-> - **Callbacks**: Asynchronous methods do not have a return value but take an extra callback parameter (a lambda or anonymous class) that gets called when the result is available. A well known example is Swing’s EventListener hierarchy.
-> - **Futures**: Asynchronous methods return a Future<T> immediately. The asynchronous process computes a T value, but the Future object wraps access to it. The value is not immediately available, and the object can be polled until the value is available. For instance, ExecutorService running Callable<T> tasks use Future objects.
->
-> Are these techniques good enough? Not for every use case, and both approaches have limitations.
->
-> Callbacks are hard to compose together, quickly leading to code that is difficult to read and maintain (known as "Callback Hell").
->
-> Futures are a bit better than callbacks, but they still do not do well at composition, despite the improvements brought in Java 8 by CompletableFuture . 
-
-**观点归纳**
-
-- Callbacks 是解决非阻塞的方案，然而他们之间很难组合，并且快速地将代码引导至 "Callback Hell"
-  的不归路
-- Futures 相对于 Callbacks 好一点，不过还是无法组合，不过 CompletableFuture 能够提升这方面
-  的不足  
-
-**理解 "Callback Hell"**
-
-```java
-public class JavaGUI {
-    public static void main(String[] args) {
-        JFrame jFrame = new JFrame("GUI 示例");
-        jFrame.setBounds(500, 300, 400, 300);
-        LayoutManager layoutManager = new BorderLayout(400, 300);
-        jFrame.setLayout(layoutManager);
-        jFrame.addMouseListener(new MouseAdapter() { // callback 1
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                System.out.printf("[线程 : %s] 鼠标点击，坐标(X : %d, Y : %d)\n",
-                        currentThreadName(), e.getX(), e.getY());
-            }
-        });
-        jFrame.addWindowListener(new WindowAdapter() { // callback 2
-            @Override
-            public void windowClosing(WindowEvent e) {
-                System.out.printf("[线程 : %s] 清除 jFrame... \n", currentThreadName());
-                jFrame.dispose(); // 清除 jFrame
-            }
-
-            @Override
-            public void windowClosed(WindowEvent e) {
-                System.out.printf("[线程 : %s] 退出程序... \n", currentThreadName());
-                System.exit(0); // 退出程序
-            }
-        });
-        System.out.println("当前线程：" + currentThreadName());
-        jFrame.setVisible(true);
-    }
-
-    private static String currentThreadName() { // 当前线程名称
-        return Thread.currentThread().getName();
-    }
-}
-```
-
-
-
-
-
-
-
-Java Swing 的 GUI 程序鼠标点击就是非阻塞回调的方式，也就是事件监听（Callback 回调方式）。每次的鼠标回调事件都没有被主线程阻塞
-
-> Callable、Runnable 都是 @FunctionalInterface 修饰的函数式接口
->
-> 同步、异步是线程模型；阻塞、非阻塞是编程模型
-
-
-
-结论：Java GUI 以及事件/监听模式基本采用匿名内置类实现，即回调实现。从本例可以得出，鼠标的点击确实没有被其他线程给阻塞。不过当监听的维度增多时，Callback 实现也随之增多。同时，事件/监听者模式的并发模型可为同步或异步。
-
-> 回顾
->
-> Spring 事件/监听器（同步/异步）：
->
-> - 事件： ApplicationEvent
-> - 事件监听器： ApplicationListener
-> - 事件广播器： ApplicationEventMulticaster
-> - 事件发布器： ApplicationEventPublisher
->
-> Servlet 事件/监听器
->
-> - 同步
->   - 事件： ServletContextEvent
->   - 事件监听器： ServletContextListener
-> - 异步
->   - 事件： AsyncEvent
->   - 事件监听器： AsyncListener  
-
-
-
-**理解 Future 阻塞问题**
-
-如果 DataLoader 的 loadOrders() 方法依赖于 loadUsers() 的结果，而 loadUsers() 又依赖于
-loadConfigurations() ，调整实现：  
-
-```java
-/**
- * {@link Future} 阻塞数据加载器
- * @author Daniel
- */
-public class FutureBlockingDataLoader extends DataLoader {
-    public static void main(String[] args) {
-        new FutureBlockingDataLoader().load();
-    }
-
-    @Override
-    protected void doLoad() {
-        ExecutorService executorService = Executors.newFixedThreadPool(3); // 创建线程池
-        runCompletely(executorService.submit(super::loadConfigurations));
-        runCompletely(executorService.submit(super::loadUsers));
-        runCompletely(executorService.submit(super::loadOrders));
-        executorService.shutdown();
-    }
-
-    private void runCompletely(Future<?> future) {
-        try {
-            future.get();
-        } catch (Exception e) {
-        }
-    }
-}
-```
-
-> Future#get() 方法不得不等待任务执行完成，换言之，如果多个任务提交后，返回的多个 Future 逐一调用 get() 方法时，将会依次阻塞，任务的执行从并行变为串行。
->
-> 这也是之前 ”“延伸思考”问答 2 的<span id="Future 问答2">答案：</span>
-
-**理解 Future 链式问题**
 
 ### Reactive Programming 特性
 
@@ -312,7 +456,7 @@ public class FutureBlockingDataLoader extends DataLoader {
 
 > Webflux 底层就是 reactive，是同步+异步+设计模式的综合体
 
-## Reactive Streams 规范
+
 
 ## Reactor 框架运用
 
