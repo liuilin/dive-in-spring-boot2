@@ -13,6 +13,8 @@
 - Reactive 能够提升程序性能？
 - Reactive 摆脱传统编程模型遇到的困境？
 
+> Wikipedia 上查的一些概念是大家综合性的描述，不仅仅是局限于 Java
+
 ### Reactive 实现框架
 
 - RxJava：Reactive extensions
@@ -439,28 +441,519 @@ RxJava 和竞争对手 Reactor
   - 数据操作：Java 8 Stream
   - 屏蔽并发细节（abstracting away…）： `Exectuor` 、 `Future` 、 `Runnable`
 
-- Reactor
+- [Reactor](https://projectreactor.io/docs/core/release/reference/#intro-reactive)
+
+  > The reactive programming paradigm is often presented in object-oriented languages as an extension of the Observer design pattern. You can also compare the main reactive streams pattern with the familiar Iterator design pattern, as there is a duality to the Iterable-Iterator pair in all of these libraries. One major difference is that, while an Iterator is pull-based, reactive streams are push-based.
+
+  关键词：
+
+  - 观察者模式（Observer pattern ）
+  - 响应流模式（Reactive streams pattern ）
+  - 迭代器模式（Iterator pattern）
+  - 拉模式（pull-based）
+  - 推模式（push-based）
+
+  侧重点：
+
+  - 设计模式（Reactive 是观察者模式的扩展）
+  - 数据获取方式（Reactive Stream 数据流和 Iterator 分别是推和拉的方式）
+
+  技术连接：
+
+  - 观察者模式：Java `Observable` / `Observer`
+  - 响应流模式：Java 8 `Stream`
+  - 迭代器模式：Java 8 `Iterator`
 
 - @andrestaltz
 
+  > **Reactive programming is programming with asynchronous data streams.**
+  >
+  > In a way, this isn't anything new. Event buses or your typical click events are really an asynchronous event stream, on which you can observe and do some side effects. Reactive is that idea on steroids. You are able to create data streams of anything, not just from click and hover events. Streams are cheap and ubiquitous, anything can be a stream: variables, user inputs, properties, caches, data structures, etc. For example, imagine your Twitter feed would be a data stream in the same fashion that click events are. You can listen to that stream and react accordingly.
 
+  关键词：
 
+  - 异步（asynchronous ）
+  - 数据流（data streams）
+  - 并非新鲜事物（not anything new）
+  - 过于理想化（idea on steroids）
 
+  侧重点：
+
+  - 并发模型
+  - 数据结构
+  - 技术本质
+
+  技术连接：
+
+  - 异步：Java `Future`
+  - 数据流：Java 8 `Stream`
+
+  > 但我觉得 Reactive 也并非是异步的，但是观察者（事件监听）模式的实现本质还是同步的。JDK 中的 `Observable` / `Observer` 就是同步的典型代表，比如他在通知的时候 Observable#notifyObservers 方法里面就是同步的去传输，只不过接收方 Observer#update 方法是不断的能接收到回调。所以我觉得这个非阻塞并不完全指的是并发模型，主要还是指的是编程模型。不过 Reactive 大多数还是属于异步的，但同步还是存在
+  >
+  > 技术需要 **” 兼听则明偏信则暗 “**，需要不断的对比
 
 ### Reactive Programming 特性
 
-- Reactor 反应堆模式：同步非阻塞
-- Proactor 模式：异步非阻塞
-- 观察者模式（Observer）：推的模式，从服务器推往客户端（事件/监听者模式，相当于监听事件）
-- 迭代器模式（Iterator）：拉的模式，从客户端向服务器拉（像比如 List、Array 都有迭代器，可以去循环获取）
+- [编程模型（Programming Models）](https://docs.spring.io/spring-framework/docs/current/reference/html/web-reactive.html#webflux-programming-models)
 
-> Webflux 底层就是 reactive，是同步+异步+设计模式的综合体
+  - 响应式编程
+  - 函数式编程
+
+  对立模型 - [Imperative programming - Wikipedia](https://en.wikipedia.org/wiki/Imperative_programming)
+
+  > imperative programming is a programming paradigm of software that uses statements that change a program's state. In much the same way that the imperative mood in natural languages expresses commands, an imperative program consists of commands for the computer to perform. Imperative programming focuses on describing how a program operates step by step, rather than on high-level descriptions of its expected results.
+
+  小结：
+
+  Reactive Programming：同步或异步非阻塞执行，数据传播被动通知
+
+  Imperative programming：同步阻塞执行，数据主动获取
+
+- 设计模式（Design Patterns）
+
+  - 扩展模式：观察者（[Observer](https://en.wikipedia.org/wiki/Observer_pattern)） - 推模式（push-based）
+
+    > 单单是观察者模式是不满足 Reactive 的，它只能满足非阻塞，用的是异步的方式来进行回调，而不是阻塞下面即将要执行的代码
+
+  - 混合模式：反应器（[Reactor](https://en.wikipedia.org/wiki/Reactor_pattern)）（同步非阻塞）、[Proactor](https://en.wikipedia.org/wiki/Proactor_pattern)（异步非阻塞），共同点都是非阻塞
+
+  - 对立模式：迭代器（[Iterator](https://en.wikipedia.org/wiki/Iterator_pattern)） - 拉模式（pull-based）
+
+  模式对比
+
+  An Observable（RxJava) is the asynchronous/push “[dual](http://en.wikipedia.org/wiki/Dual_(category_theory))” to the synchronous/pull Iterable  
+
+  | event          | Iterable (pull)  | Observable (push)  |
+  | -------------- | ---------------- | ------------------ |
+  | data           | T next()         | onNext(T)          |
+  | discover error | throws Exception | onError(Exception) |
+  | complete       | !hasNext()       | onCompleted()      |
+
+  小结：Reactive Programming 作为观察者模式（Observer） 的延伸，在处理流式数据的过程中，并非使用传统的命令编程方式（ Imperative programming）同步拉取数据，如迭代器模式（Iterator） ，而是采用**同步或异步非阻塞地推和拉**（观察者+迭代器）相结合的方式，响应数据传播时的变化
+
+  > Reactive 模式 = 同步/异步非阻塞 + 推和拉两种模型
+
+- 数据结构（Data Structure）
+
+  - 流式（Streams）
+  - 序列（Sequences）
+  - 事件（Events）
+
+  [小结](https://gist.github.com/staltz/868e7e9bc2a7b8c1f754#what-is-reactive-programming)：A stream is a sequence of **ongoing events ordered in time**.
+
+- 并发模式（Concurrency Model）
+
+  - 非阻塞（Non-Blocking）
+    - 同步（Synchronous）
+    - 异步（Asynchronous）
+
+  小结：屏蔽并发编程细节，如线程、同步、线程安全以及并发数据结构。（如：Tread.start()、Lock 的 lock()/unlock()、可见性，原子性，有序性、CopyOnWriteArrayList）
+
+  > 想要同步异步自己切换，并且有顺序（一条流水线，加载顺序不能乱），在前面的 `CompletableFuture` 链式调用的时候，保证了 loadConfigurations()、loadUsers()、loadOrders() 的顺序执行。而线程池的线程执行是由 JVM 或操作系统来调度的，具体什么时候执行我们是不知道。那我们就需要一种数据结构或是编程模型来保证顺序，并且非阻塞（可认为是 callback 回调），2. 需要它是异步或同步交由开发人员来选择，而不是实现更复杂的线程、同步、线程安全等一系列事项
 
 
+
+
+
+
+
+
+
+> - Reactor 反应堆模式：同步非阻塞
+>
+> - Proactor 模式：异步非阻塞
+>
+> - 观察者模式（Observer）：推的模式，从服务器推往客户端（事件/监听者模式，相当于监听事件）
+>
+> - 迭代器模式（Iterator）：拉的模式，从客户端向服务器拉（像比如 List、Array 都有迭代器，可以去循环获取）
+>
+>   Webflux 底层就是 reactive，是同步+异步+设计模式的综合体
+
+### Reactive Programming 使用场景
+
+[Reactive Streams JVM](https://github.com/reactive-streams/reactive-streams-jvm)
+
+> The main goal of Reactive Streams is to govern the exchange of stream data across an asynchronous boundary
+
+主要目的：
+
+- 管理流式数据交换（ govern the exchange of stream data）
+- 异步边界（asynchronous boundary）
+
+[Spring Framework](https://docs.spring.io/spring-framework/docs/current/reference/html/web-reactive.html#webflux-performance)
+
+> Reactive and non-blocking generally **do not make applications run faster**. They can, in some cases, (for example, if using the WebClient to run remote calls in parallel). On the whole, it requires more work to do things the non-blocking way and that can slightly increase the required processing time.
+>
+> The key expected benefit of reactive and non-blocking is the ability to scale with a small, fixed number of threads and less memory. That makes applications more resilient under load, because they scale in a more predictable way.
+
+主要目的：
+
+- 通常并非让应用运行更快速（generally do not make applications run faster）
+- 利用较少的资源提升伸缩性（scale with a small, fixed number of threads and less memory）
+
+![Reactive 吞吐量](http://cdn.liumulin.top/Reactive%20%E5%90%9E%E5%90%90%E9%87%8F.jpg)
+
+> 有 5 个 Client 分别进行 RPC 远程调用，每个消耗 100ms。而 Worker 线程池中开辟 5 个线程，每个线程占用 1m 空间，共占用 5m。假设是 8 核 CPU，那么并行的话就一下子占了 5 个核。
+>
+> 如果此时转给只开辟 3 个核的 Reactive 线程池来管理，那么内存占用从 5m 降为了 3m，核数由占用 5 个核降为了 3 个核。
+>
+> 并行的时候，5 个线程执行 5 个任务，100ms 就执行完了。转为 Reactive 线程池时，时间就为 100ms+100ms（第一次的 100ms 执行完才能够释放）
+>
+> 假如说有 10 个客户端发送请求，并行就 2 次 200ms 完成。而到 Reactive 线程池里就要花 4 次 400ms 完成，而且最后一次的还容易超时，这种长时间运行的任务就适合放到消息队列里面，不设置超时时间，让消息积压，等待 Reactive 线程池里处理完了消息才处理
+>
+> 所以 Webflux 并不适合 Web 的应用，它可以提升吞吐量，但它的 RT 反而会变得更长
+
+如果说 Webflux 比 Tomcat 性能好的话，应该说是 Netty WebServer 比 Tomcat 性能好。但实际上他们性能都差不多。主要是因为 Tomcat 默认只有 200 个线程池，而 Netty 可以随便设置 N 个线程池。越大的话性能越好，相等时它两差不多。
+
+跨异步边界 = 线程切换
+
+[ReactiveX]
+
+> The ReactiveX Observable model allows you to treat streams of asynchronous events with the
+> same sort of simple, composable operations that you use for collections of data items like
+> arrays. It frees you from tangled webs of callbacks, and thereby makes your code more readable and less prone to bugs.  
+
+主要目的：
+
+- 更好可读性（more readable）
+- 减少 bugs（less prone to bugs）
+
+核心技术：
+
+- 异步（asynchronous）
+- 同顺序（same sort）
+- 组合操作（composable operations）
+
+Java 原生技术限制：Stream 存在组合限制（两个流合并在一起）
+
+[Reactor]
+
+> Composability and readability
+>
+> Data as a flow manipulated with a rich vocabulary of operators
+>
+> Nothing happens until you subscribe
+>
+> Backpressure or the ability for the consumer to signal the producer that the rate of emission is
+> too high
+>
+> High level but high value abstraction that is concurrency-agnostic
+
+主要目的：
+
+- 结构性和可读性（Composability and readability）
+- 高层次并发抽象（High level abstraction）
+
+核心技术：
+
+- 丰富的数据操作符（ rich vocabulary of operators）
+- 背压（Backpressure）
+- 订阅式数据消费（Nothing happens until you subscribe）
+
+Java 原生技术限制：
+
+- Stream 有限操作符
+- Stream 不支持背压
+- Stream 不支持订阅（Stream 是迭代器模式，也就是 pull 拉的模式，所以不支持订阅）
+
+**总结 Reactive Programming：**
+
+Reactive Programming 作为观察者模式（Observer） 的延伸，不同于传统的命令编程方式（Imperative programming）同步拉取数据的方式，如迭代器模式（Iterator） 。而是采用数据发布者同步或异步地推送到数据流（Data Streams）的方案。当该数据流（Data Steams）订阅者监听到传播变化时，立即作出响应动作。在实现层面上，Reactive Programming 可结合函数式编程简化面向对象语言语法的臃肿性，屏蔽并发实现的复杂细节，提供数据流的有序操作，从而达到提升代码的可读性，以及减少 Bugs 出现的目的。同时，Reactive Programming 结合背压（Backpressure）的技术解决发布端生成数据的速率高于订阅端消费的问题。  
+
+## Reactive Streams 规范
+
+### API 组件
+
+Publisher：数据发布者，数据上游
+
+Subscriber：数据订阅者，数据下游
+
+信号事件
+
+- onSubscribe：当下游订阅时
+- onNext：当下游接收数据时
+- onComplete：当数据流（Data Streams）执行完成时
+- onError： 当数据流（Data Streams）执行错误时
+
+Subscription：订阅信号控制
+
+信号操作
+
+- request：请求上游元素的数量
+- cancel：请求停止发送数据并且清除资源
+
+Processor：消息发布者和订阅者综合体
+
+### 背压（Backpressure）
+
+[维基百科](https://en.wikipedia.org/wiki/Back_pressure)
+
+> The term is also used analogously in the field of information technology to describe the buildup of data behind an I/O switch if the buffers are full and incapable of receiving any more data;the transmitting device halts the sending of data packets until the buffers have been emptied and are once more capable of storing information. It also refers to an algorithm for routing data according to congestion gradients (see backpressure routing).
+
+关键字：
+
+- I/O 切换（I/O switch ）
+- 缓冲填满（the buffers are full ）
+- 数据无法接受（incapable of receiving any more data）
+- 传输设备（transmitting device ）
+- 停止发送数据包（halts the sending of data packets ）
+
+[Reactive Streams JVM](https://github.com/reactive-streams/reactive-streams-jvm)
+
+> Backpressure is an integral part of this model in order to allow the queues which mediate
+> between threads to be bounded.
+>
+> Since back-pressure is mandatory the use of unbounded buffers can be avoided. In general, the only time when a queue might grow without bounds is when the publisher side maintains a higher rate than the subscriber for an extended period of time, but this scenario is handled by backpressure instead.  
+
+关键字：
+
+- 线程和边界间调停（mediate between threads to be bounded）
+- 发布者维持速率高于订阅者（publisher side maintains a higher rate than the subscriber）
+- 背压处理（handled by backpressure）
+
+Reactor
+
+> Propagating signals upstream is also used to implement **backpressure**, which we described in
+> the assembly line analogy as a feedback signal sent up the line when a workstation processes
+> more slowly than an upstream workstation.
+>
+> The real mechanism defined by the Reactive Streams specification is pretty close to the analogy: a subscriber can work in *unbounded* mode and let the source push all the data at its
+> fastest achievable rate or it can use the `request` mechanism to signal the source that it is
+> ready to process at most `n` elements.
+
+关键字：
+
+- Propagating signals upstream（传播上游信号）
+- 无边界模式（*unbounded* mode）
+- 处理最大元素数量（process at most n elements）
+
+**总结背压**
+
+假设下游 Subscriber 工作在无边界大小的数据流水线时，当上游 Publisher 提供数据的速率快于下游 Subscriber 的消费数据速率时，下游 Subscriber 将通过传播信号（request）到上游 Publisher，请求限制数据的数量（ Demand ）或通知上游停止数据生产。
+
+> 当消费者消费不过来，或者消费端 CPU 过高了，或者内存消耗过大。此时可以选择终止生产数据结束流处理，或者限定一个数量，只消费这么多
 
 ## Reactor 框架运用
 
+### 核心 API
 
+**`Mono`**
+
+定义：0-1 的非阻塞结果
+
+实现：Reactive Streams JVM API `Publisher`
+
+类比：非阻塞 `Optional`
+
+类似模式：点对点模式
+
+![image-20220716074605657](http://cdn.liumulin.top/image-20220716074605657.png)
+
+图解
+
+![Mono](https://projectreactor.io/docs/core/release/reference/images/mono.svg)
+
+> 红色叉叉那里相当于阻塞住了（被终止了），一般是 CPU 过高进行背压操作，或者数据库连接异常，IO 异常等情况
+
+**`Flux`**
+
+定义：0-N 的非阻塞序列
+
+实现：Reactive Streams JVM API `Publisher`
+
+类比：非阻塞 `Stream`
+
+类似模式：发布 / 订阅者模式
+
+图解
+
+![Flux](http://cdn.liumulin.top/flux.svg)
+
+**`Scheduler`**
+
+定义：Reactor 调度线程池
+
+- 当前线程： Schedulers.immediate()
+  - 等价关系：Thread.currentThread()
+- 单复用线程： Schedulers.single()
+  - 内部名称："single"
+  - 线程名称："single"
+  - 线程数量：单个
+  - 线程 idel 时间：Long Live
+  - 底层实现：ScheduledThreadPoolExecutor (core 1)
+- 弹性线程池： Schedulers.elastic()
+  - 内部名称："elastic"
+  - 线程名称："elastic-evictor-{num}"
+  - 线程数量：无限制（unbounded）
+  - 线程 idel 时间：60 秒
+  - 底层实现：ScheduledThreadPoolExecutor
+- 并行线程池： Schedulers.parallel()
+  - 内部名称："parallel"
+  - 线程名称："parallel-{num}"
+  - 线程数量：处理器数量
+  - 线程 idel 时间：60 秒
+  - 底层实现：ScheduledThreadPoolExecutor
+
+> 同一个处理器上面多个线程时并发；不同处理器上面不同线程时并行
+
+### 实战
+
+**Maven 依赖**
+
+```java
+<dependency>
+	<groupId>io.projectreactor</groupId>
+	<artifactId>reactor-core</artifactId>
+</dependency>
+```
+
+**同步处理**
+
+Flux：打印的全是 main 线程，所以应该称之为非阻塞序列，而非 “异步” 序列
+
+```java
+public class FluxDemo {
+
+    public static void main(String[] args) {
+        Flux.just("A", "B", "C")
+                .subscribe(FluxDemo::println);
+    }
+
+    public static void println(Object object) {
+        String threadName = Thread.currentThread().getName();
+        System.out.println("[线程：" + threadName + "]:" + object);
+    }
+
+}
+// [线程：main]:A
+// [线程：main]:B
+// [线程：main]:C
+```
+
+```java
+public class FluxDemo {
+
+    public static void main(String[] args) throws InterruptedException {
+        println("run...");
+        Flux.just("A", "B", "C") // 发布 A->B->C
+                .publishOn(Schedulers.boundedElastic()) // 线程池切换
+                .map(value -> "+" + value) // "A" -> "+A"
+                .subscribe(
+                        FluxDemo::println, // 数据消费
+                        FluxDemo::println, // 异常处理
+                        () -> println("完成操作！") // 完成操作
+                );
+
+        Thread.sleep(1000);
+    }
+
+    public static void println(Object object) {
+        String threadName = Thread.currentThread().getName();
+        System.out.println("[线程：" + threadName + "]:" + object);
+    }
+
+}
+```
+
+> 为什么没有执行 map 转换操作和最后一步打印 “完成操作！”。需要主线程睡一秒
+>
+> 异步编程、并发编程带来的问题：最后一步是随着主线程的退出而退出，增加一定的等待时间就 OK
+>
+> 在注释掉 `.publishOn(Schedulers.boundedElastic())` 以后，切换为单线程执行就没有问题，直接打印 map 操作和 “完成操作！”语句
+
+```java
+public class FluxDemo {
+
+    public static void main(String[] args) throws InterruptedException {
+        println("run...");
+        Flux.just("A", "B", "C") // 发布 A->B->C
+                .publishOn(Schedulers.boundedElastic()) // 线程池切换
+                .map(value -> "+" + value) // "A" -> "+A"
+                .subscribe(
+                        FluxDemo::println, // 数据消费 = onNext(T)
+                        FluxDemo::println, // 异常处理 = onError(Throwable)
+                        () -> println("完成操作！"), // 完成操作 = onComplete()
+                        subscription -> subscription.request(1) // 背压操作 onSubscribe(Subscription)
+                );
+
+        Thread.sleep(1000);
+    }
+
+    public static void println(Object object) {
+        String threadName = Thread.currentThread().getName();
+        System.out.println("[线程：" + threadName + "]:" + object);
+    }
+
+}
+```
+
+标准的 Reactive Stream API 调用结果
+
+```java
+public class FluxDemo {
+
+    public static void main(String[] args) throws InterruptedException {
+        println("run...");
+        Flux.just("A", "B", "C") // 发布 A->B->C
+                .publishOn(Schedulers.boundedElastic()) // 线程池切换
+                .map(value -> "+" + value) // "A" -> "+A"
+//                .subscribe(
+//                        FluxDemo::println, // 数据消费 = onNext(T)
+//                        FluxDemo::println, // 异常处理 = onError(Throwable)
+//                        () -> println("完成操作！"), // 完成操作 = onComplete()
+//                        subscription -> subscription.request(1) // 背压操作 onSubscribe(Subscription)
+//                );
+                .subscribe(new Subscriber<>() {
+                    Subscription subscription;
+                    int count=0;
+
+                    @Override
+                    public void onSubscribe(Subscription s) {
+                        subscription = s;
+                        s.request(1);
+                    }
+
+                    @Override
+                    public void onNext(String s) {
+                        if (count==2) {
+                            throw new RuntimeException("自定义抛出异常");
+                        }
+                        println(s);
+                        count++;
+                        subscription.request(1);
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        println(t);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        println("完成操作！");
+                    }
+                });
+
+        Thread.sleep(1000);
+    }
+
+    public static void println(Object object) {
+        String threadName = Thread.currentThread().getName();
+        System.out.println("[线程：" + threadName + "]:" + object);
+    }
+
+}
+```
+
+> Netty 在长连接的情况下才有优势，否则和 Tomcat 差不多
+>
+> Netty 的事件循环在短连接里面作用不是很大
+>
+> Spring Cloud Hystrix 用的是 RxJava；Webflux 用的是 Reactor
+
+总结思考：Reactive 过于理想化了，是旧的东西重新包装了一下。目的花更小的代价来做更多的事情，利用更小的 CPU 资源去抗住更大的吞吐量（缺点：接收的处理任务的次数变多，请求的次数变长）
+
+> maven 配置 `<relativePath>../</relativePath>` 可以减少寻址的依赖
 
 
 

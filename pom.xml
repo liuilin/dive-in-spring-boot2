@@ -14,6 +14,7 @@
         <version>2.6.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
+
     <groupId>com.liumulin</groupId>
     <artifactId>dive-in-spring-boot2</artifactId>
     <version>0.0.1-SNAPSHOT</version>
